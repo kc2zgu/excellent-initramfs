@@ -51,7 +51,7 @@ unset -v d
 [ ! -e /dev/zero ]     && run mknod /dev/zero c 1 5
 
 # Clear the screen
-clear
+#clear
 
 # Save IFS so we can easly restore it if we ever change it.
 readonly default_ifs="${IFS}"
@@ -59,9 +59,17 @@ readonly default_ifs="${IFS}"
 # Basic
 kernelver="$(uname -r)"
 ver="$(cat /VERSION)"
+stamp="$(cat /BUILDSTAMP)"
 
-einfo "better-initramfs ${ver}. Linux kernel ${kernelver}.\n"
-echo -e "\nWelcome to better-initramfs ${ver}. Linux kernel ${kernelver}.\n" > /etc/motd
+sleep 1
+
+einfo "excellent-initramfs ${ver} by Stephen Cavilia"
+einfo "  Linux kernel ${kernelver}."
+einfo "  Based on better-initramfs by Piotr Karbowski"
+einfo "  Build: $stamp"
+echo -e "\nWelcome to excellent-initramfs ${ver}. Linux kernel ${kernelver}.\n" > /etc/motd
+
+sleep 1
 
 emount /proc /sys
 
@@ -78,6 +86,10 @@ loadkeymap
 
 use rootdelay rootdelay
 
+load_mods usb
+load_mods pci
+load_mods stor
+
 # Let's try to support all possible combinations of storage layers.
 use bcache register_bcache_devices
 use softraid InitializeSoftwareRaid && use bcache register_bcache_devices
@@ -89,16 +101,49 @@ populate_dev_disk_by_label_and_uuid
 use rescueshell rescueshell
 use swsusp && SwsuspResume
 use tuxonice TuxOnIceResume
-run_hooks pre_newroot_mount
-emount /newroot
-emount /newroot/usr
+
+#use iso isomount
+#use loop findloop
+
+einfo "Symlinking mtab to proc/mounts"
+rm /etc/mtab
+ln -s /proc/mounts /etc/mtab
+
+if [ ! -n $bstrat ]; then
+    ewarn "No boot strategy specified"
+    bstrat=rootdev
+fi
+
+if [ -n "$cdboot" ]; then
+    einfo "CDBOOT enabled"
+    export CDBOOT=1
+fi
+
+case $bstrat in
+    rootdev)
+        einfo "Boot strategy: rootdev (root on block device)"
+        boot_dev $root
+        ;;
+    loop)
+        einfo "Boot strategy: loop (root on loopback device)"
+        findloop
+        boot_dev $root
+        ;;
+    *)
+        eerror "Unsupported boot strategy: $bstrat"
+        ;;
+esac
+
+#run_hooks pre_newroot_mount
+#emount /newroot
+#emount /newroot/usr
 # Wait for sshd connection only if rescueshell have never occur.
-use sshd && was_shell || wait_sshd
-cleanup
-moveDev
-eumount /sys /proc
-run_hooks pre_switch_root
-boot_newroot
+#use sshd && was_shell || wait_sshd
+#cleanup
+#moveDev
+#eumount /sys /proc
+#run_hooks pre_switch_root
+#boot_newroot
 
 ewarn "Something went wrong."
 rescueshell

@@ -27,10 +27,13 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE
 
-einfo() { echo -ne "\033[1;30m>\033[0;36m>\033[1;36m> \033[0m${*}\n" ;}
-ewarn() { echo -ne "\033[1;30m>\033[0;33m>\033[1;33m> \033[0m${*}\n" >&2;}
-eerror() { echo -ne "\033[1;30m>\033[0;31m>\033[1;31m> ${*}\033[0m\n" >&2 ;}
-die() { eerror "$*"; rescueshell; }
+#einfo() { echo -ne "\033[1;30m>\033[0;36m>\033[1;36m> \033[0m${*}\n" ;}
+#ewarn() { echo -ne "\033[1;30m>\033[0;33m>\033[1;33m> \033[0m${*}\n" >&2;}
+#eerror() { echo -ne "\033[1;30m>\033[0;31m>\033[1;31m> ${*}\033[0m\n" >&2 ;}
+#die() { eerror "$*"; rescueshell; }
+. /einfo-minimal.sh
+
+. /modules.sh
 
 
 InitializeBusybox() {
@@ -482,10 +485,10 @@ boot_newroot() {
 	init="${init:-/sbin/init}"
 	einfo "Switching root to /newroot and executing ${init}."
 	if ! [ -x "/newroot/${init}" ]; then die "There is no executable '/newroot/${init}'."; fi
-	exec env -i \
+	exec env - \
 		TERM="${TERM:-linux}" \
-		PATH="${PATH:-/bin:/sbin:/usr/bin:/usr/sbin}" \
-			switch_root /newroot "${init}"
+        	PATH="${PATH:-/bin:/sbin:/usr/bin:/usr/sbin}" \
+	        switch_root /newroot "${init}"
 }
 
 emount() {
@@ -507,6 +510,24 @@ emount() {
 					fi
 					resolve_device root
 					run mount -o ${root_rw_ro:-ro} ${mountparams} "${root}" '/newroot'
+				fi
+			;;
+
+			'/newroot_ro')
+				if mountpoint -q '/newroot_ro'; then
+					einfo "/newroot_ro already mounted, skipping..."
+				else	
+				    einfo "Mounting /newroot_ro..."
+                                    mkdir /newroot_ro
+					musthave root
+					if [ "${rootfsmountparams}" ]; then
+						mountparams="${rootfsmountparams}"
+					fi
+					if [ -n "${rootfstype}" ]; then 
+						mountparams="${mountparams} -t ${rootfstype}"
+					fi
+					resolve_device root
+					run mount -o ${root_rw_ro:-ro} ${mountparams} "${root}" '/newroot_ro'
 				fi
 			;;
 
@@ -596,6 +617,136 @@ rootdelay() {
 	else
 		ewarn "\$rootdelay variable must be numeric and greater than zero. Skipping rootdelay."
 	fi
+}
+
+findfile() {
+    file=$1
+    einfo "Looking for ${file} on all filesystems"
+    mkdir /run/findmnt
+    for blk in `blkid |cut -d: -f1`; do
+        ebegin "Mounting ${blk}"
+        if mount -o ro ${blk} /run/findmnt; then
+            eend 0
+            if [ -f /run/findmnt/${file} ]; then
+                einfo "Found $file on ${blk}"
+                filefound=${blk}
+                umount /run/findmnt
+                return 0
+            fi
+        else
+            eend 1
+        fi
+    done
+    return 1
+}
+
+findloop() {
+    einfo "Looking for filesystem image ${loop}"
+    getmod loop
+    if findfile ${loop}; then
+        einfo "Image found on ${filefound}"
+        mkdir /run/loopsrc
+        loopdev=`losetup -f`
+        loopdir=/run/loopsrc
+        if mount -o ro ${filefound} /run/loopsrc; then
+            if [ -n "$loopcache" ]; then
+                ebegin "Caching ${loop} to ramfs"
+                cp ${loopdir}/${loop} /run/${loop}
+                loopdir=/run
+                eend $?
+                einfo "Unmounting loop source"
+                umount /run/loopsrc
+            fi
+            if losetup ${loopdev} ${loopdir}/${loop}; then
+                root=${loopdev}
+                einfo "Filesystem image attached to ${loopdev}"
+            else
+                eerror "Couldn't attach loop device"
+            fi
+        else
+            eerror "Couldn't mount ${filefound}"
+        fi
+    else
+        eerror "Couldn't find image ${loop}"
+    fi
+}
+
+isomount() {
+    einfo "Looking for ISO image ${iso}"
+    
+}
+
+make_dir_rw() {
+    dir=$1
+
+    mkdir -p /run/tmptmp/$1
+
+    mount -t tmpfs tmpfs /run/tmptmp/$1
+    ebegin "Creating tmpfs copy of /newroot/$1"
+    cp -a /newroot/$1 /run/tmptmp/
+    eend $?
+
+    mount -o move /run/tmptmp/$1 /newroot/$1
+    
+    rmdir /run/tmptmp/$1
+}
+
+boot_dev() {
+    root=$1
+
+    run_hooks pre_newroot_mount
+    if [ -n "$fullcache" ]; then
+        emount /newroot_ro
+        mount -t tmpfs tmpfs /newroot
+        df -h
+        du -hs /newroot_ro
+        ebegin "Caching root fs files to ramfs"
+        cp -a /newroot_ro/* /newroot/
+        eend $?
+        einfo "Unmounting root fs source"
+        umount /newroot_ro
+        if [ -n "$loop" ]; then
+            ebegin "Detaching loop device $loopdev"
+            losetup -d $loopdev
+            eend $?
+        fi
+        if [ -d /run/loopsrc ]; then
+            ebegin "Unmounting loop image source"
+            umount /run/loopsrc
+            eend $?
+        fi
+    elif [ -n "$rwtmp" ]; then
+        emount /newroot
+        emount /newroot/usr
+        make_dir_rw etc
+        make_dir_rw home
+        make_dir_rw root
+        make_dir_rw var
+        make_dir_rw tmp
+    else
+        emount /newroot
+        emount /newroot/usr
+    fi
+    if [ -f /newroot/etc/init.d/fixinittab ]; then
+        if [ -n "$CDBOOT" ]; then
+            if [ -w /newroot/etc/conf.d ]; then
+                einfo "Fixing gentoo fixinittab"
+                echo CDBOOT=1 > /newroot/etc/conf.d/fixinittab
+            else
+                eerror "/newroot/etc RO, can't fix fixinittab"
+            fi
+        fi
+    fi
+
+    use rescueshell rescueshell
+
+    moveDev
+    eumount /sys /proc
+
+    use rootdelay rootdelay
+    
+    run_hooks pre_switch_root
+    boot_newroot
 }
 
 # vim: noexpandtab
