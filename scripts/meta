@@ -65,7 +65,13 @@ fi
 
 echo "${version}" > "${sourceroot}/VERSION"
 
-einfo "better-initramfs ${version}"
+einfo "excellent-initramfs ${version}"
+
+stamp="$USER@$HOSTNAME:`date +%F.%T`"
+
+echo "${stamp}" > "${sourceroot}/BUILDSTAMP"
+
+einfo "Build timestamp: $stamp"
 
 prepare() {
 	einfo "Deploying bootstraped binaries into source root ..."

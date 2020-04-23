@@ -5,6 +5,7 @@ sourceroot/bin/*
 !sourceroot/bin/resume-boot
 !sourceroot/bin/dhcp-query
 sourceroot/VERSION
+sourceroot/BUILDSTAMP
 output/*
 !*.keep
 sourceroot/lib/*
