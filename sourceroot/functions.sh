@@ -740,6 +740,8 @@ boot_dev() {
     moveDev
     eumount /sys /proc
 
+    echo
+
     use rootdelay rootdelay
     
     run_hooks pre_switch_root

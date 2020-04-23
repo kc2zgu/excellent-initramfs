@@ -63,11 +63,15 @@ stamp="$(cat /BUILDSTAMP)"
 
 sleep 1
 
+echo
+
 einfo "excellent-initramfs ${ver} by Stephen Cavilia"
 einfo "  Linux kernel ${kernelver}."
 einfo "  Based on better-initramfs by Piotr Karbowski"
 einfo "  Build: $stamp"
 echo -e "\nWelcome to excellent-initramfs ${ver}. Linux kernel ${kernelver}.\n" > /etc/motd
+
+echo
 
 sleep 1
 
@@ -108,6 +112,8 @@ use tuxonice TuxOnIceResume
 einfo "Symlinking mtab to proc/mounts"
 rm /etc/mtab
 ln -s /proc/mounts /etc/mtab
+
+echo
 
 if [ ! -n $bstrat ]; then
     ewarn "No boot strategy specified"
