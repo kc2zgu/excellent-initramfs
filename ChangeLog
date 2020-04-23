@@ -1,6 +1,11 @@
 For details check git history.
 
 devel branch:
+	- Placeholder
+
+v0.10.0:
+	- Provide /run/cryptsetup within initramfs. Fixes cryptsetup with luks2 header.
+	- rootflags= support added (unqueued)
 	- Typo fix in 00_profile.sh (André Erdmann)
 	- The cryptsetup path is no longer hardcoded (André Erdmann)
 	- Number of changes around `eval` usage to not crash if ever findfs return
@@ -22,16 +27,18 @@ devel branch:
 	- cryptsetup and libgcrypt is now always built with O3 instead of Os.
 	- Version bumps:
 	    sysroot Aboriginal Linux 1.2.0 -> Alpine Linux 3.7.0
-		dropbear 2015.71 -> 2017.75
-		lvm2 2.02.103 -> 2.02.177
-		busybox 1.21.1 -> 1.27.2
+		dropbear 2015.71 -> 2019.78
+		lvm2 2.02.103 -> 2.02.186
+		busybox 1.21.1 -> 1.31.1
 		zlib 1.2.8 -> 1.2.11
-		libuuid 2.21.2 -> 2.31.1
-		libgpg-error 1.20 -> 1.27
-		libgcrypt 1.6.4 -> 1.8.2
-		json-c 0.13 (new dependency)
-		cryptsetup 1.7.0 -> 2.0.0
-		mdadm 3.3.6 -> 4.0
+		libuuid 2.21.2 -> 2.35.1
+		libgpg-error 1.20 -> 1.37
+		libgcrypt 1.6.4 -> 1.8.5
+		json-c 0.13.1 (new dependency)
+		cryptsetup 1.7.0 -> 2.3.1
+		mdadm 3.3.6 -> 4.1
+		libaio 0.3.112 (new dependency)
+		libblkid 2.35.1 (new dependency)
 		suspend removed
 		libx86 removed
 		lzo removed
