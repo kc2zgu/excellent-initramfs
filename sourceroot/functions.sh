@@ -645,16 +645,19 @@ findloop() {
         mkdir /run/loopsrc
         loopdev=`losetup -f`
         loopdir=/run/loopsrc
+        loopfile=`basename ${loop}`
+        looppath=/run/loopsrc/${loop}
         if mount -o ro ${filefound} /run/loopsrc; then
             if [ -n "$loopcache" ]; then
                 ebegin "Caching ${loop} to ramfs"
-                cp ${loopdir}/${loop} /run/${loop}
+                cp ${loopdir}/${loop} /run/${loopfile}
                 loopdir=/run
+                looppath=/run/${loopfile}
                 eend $?
                 einfo "Unmounting loop source"
                 umount /run/loopsrc
             fi
-            if losetup ${loopdev} ${loopdir}/${loop}; then
+            if losetup ${loopdev} ${looppath}; then
                 root=${loopdev}
                 einfo "Filesystem image attached to ${loopdev}"
             else

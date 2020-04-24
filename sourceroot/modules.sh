@@ -20,7 +20,7 @@ load_mods() {
     case ${mod_group} in
         usb)
             einfo "Loading USB modules"
-            getmod uhci_hcd ohci_hcd ehci_hcd xhci_hcd
+            getmod ehci_hcd uhci_hcd ohci_hcd xhci_hcd xhci_pci
             getmod usb_storage usbserial hid
             ;;
         pci)
