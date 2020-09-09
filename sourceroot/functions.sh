@@ -270,7 +270,9 @@ InitializeLUKS() {
 			# Remove the fifo, askpass will create new if needed (ex multiple devices).
 			rm '/luks_passfifo'
 		else
-			run cryptsetup luksOpen --tries 25 ${cryptsetup_args} "${enc_dev}" "${dev_name}"
+			setsid cttyhack /getpass.sh `basename ${enc_dev}`
+			run cryptsetup --tries 1 --key-file=/run/initramfs-passwd luksOpen ${cryptsetup_args} "${enc_dev}" "${dev_name}"
+			rm /run/initramfs-passwd
 		fi
 		enc_num="$((enc_num+1))"
 	done
