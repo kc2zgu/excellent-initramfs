@@ -61,8 +61,6 @@ kernelver="$(uname -r)"
 ver="$(cat /VERSION)"
 stamp="$(cat /BUILDSTAMP)"
 
-sleep 1
-
 echo
 
 einfo "excellent-initramfs ${ver} by Stephen Cavilia"
@@ -73,8 +71,6 @@ echo -e "\nWelcome to excellent-initramfs ${ver}. Linux kernel ${kernelver}.\n" 
 
 echo
 
-sleep 1
-
 emount /proc /sys
 
 # Disable kernel messages from popping onto the screen
@@ -84,13 +80,25 @@ process_commandline_options
 InitializeBusybox
 emount /dev
 run_hooks early
+
+if [ -f /fonts/default ]; then
+    einfo "Setting console font ($(basename $(readlink /fonts/default)))"
+    setsid cttyhack setfont /fonts/default
+fi
+
+sleep 1
+
 SetupNetwork
 use sshd && setup_sshd
 loadkeymap
 
-load_mods usb
-load_mods pci
-load_mods stor
+if [ -d /lib/modules ]; then
+	load_mods usb
+	load_mods pci
+	load_mods stor
+else
+	einfo "No modules in initramfs, skipping"
+fi
 
 use rootdelay rootdelay
 
