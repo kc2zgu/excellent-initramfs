@@ -1,0 +1,16 @@
+#!/bin/sh
+name='ncurses'
+version='6.2'
+sources=( "https://invisible-mirror.net/archives/ncurses/${name}-${version}.tar.gz" )
+homepage="https://invisible-island.net/ncurses/"
+license='MIT'
+
+build_cmd="
+    cd /source/${name}-${version} && \
+    ./configure --prefix=/binit/prefix --without-shared --without-cxx-shared --without-ada --without-cxx --without-manpages --without-tests --with-terminfo-dirs=/etc/terminfo && \
+    make -j ${cores_num:-1} && \
+    make install"
+
+fetch_source
+install_source
+build_source

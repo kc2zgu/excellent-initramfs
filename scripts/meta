@@ -120,6 +120,12 @@ prepare() {
 		ewarn "No vconfig binary found, Vlan configuration will be disabled"
 	fi
 
+	if test -f dialog; then
+		cp dialog "${sourceroot}/bin/dialog"
+	else
+		ewarn "No dialog found"
+	fi
+
 	einfo "Attempting to create basic device nodes ..."
 	relaxed_mknod console c 5 1
 	relaxed_mknod null c 1 3
