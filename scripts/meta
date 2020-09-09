@@ -135,6 +135,14 @@ prepare() {
 	relaxed_mknod random c 1 8
 	relaxed_mknod zero c 1 5
 
+	terminfos="ansi dumb linux vt100 vt102 vt220 xterm xterm-color xterm-256color"
+	for term in $terminfos; do
+		prefix=`echo $term |cut -c 1`
+		einfo "Installing $term terminfo file to /etc/terminfo/$prefix"
+		mkdir -p "${sourceroot}/etc/terminfo/$prefix"
+		cp "${bootstrap}/build_dir/binit/prefix/share/terminfo/${prefix}/${term}" "${sourceroot}/etc/terminfo/${prefix}/"
+	done
+
 }
 
 image() {
