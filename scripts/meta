@@ -32,6 +32,7 @@ workdir="${scriptpath%/*}"
 bootstrap="${workdir}/../bootstrap"
 sourceroot="${workdir}/../sourceroot"
 sourceroot="$(readlink -f "${sourceroot}")"
+compress=xz
 
 relaxed_mknod() {
 	if ! [ -e "${sourceroot}/dev/$1" ]; then
@@ -141,12 +142,28 @@ image() {
 
 	einfo 'Building image...'
 
-	( cd "${sourceroot}" && find . | cpio --quiet -H newc -o | gzip -9 > ../output/initramfs.cpio.gz)
+	output_image=
+	compress_cmd="gzip -9"
+	case $compress in
+		gzip)
+			compress_cmd="gzip -9"
+			output_image="excellent-initramfs.cpio.gz"
+		;;
+		bzip2)
+			compress_cmd="bzip2 -9"
+			output_image="excellent-initramfs.cpio.bz2"
+		;;
+		xz)
+			compress_cmd="xz -e"
+			output_image="excellent-initramfs.cpio.xz"
+		;;
+	esac
+	( cd "${sourceroot}" && find . | cpio --quiet -H newc -o | $compress_cmd > ../output/$output_image)
 
-	if [ -f "${sourceroot}/../output/initramfs.cpio.gz" ]; then
-		einfo "output/initramfs.cpio.gz is ready."
+	if [ -f "${sourceroot}/../output/$output_image" ]; then
+		einfo "output/$output_image is ready."
 	else
-		die "There is no initramfs.cpio.gz, something goes wrong."
+		die "There is no $output_image, something goes wrong."
 	fi
 
 	if [ -f "${sourceroot}/etc/dropbear/dropbear_rsa_host_key" ] || [ -f "${sourceroot}/etc/dropbear/dropbear_dss_host_key" ]; then
